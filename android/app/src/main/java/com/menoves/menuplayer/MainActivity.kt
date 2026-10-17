@@ -89,6 +89,6 @@ class MainActivity : Activity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
         if (PlayerState.locked) true else super.dispatchKeyEvent(event)
 
-    override fun onResume() { super.onResume(); PlayerState.inForeground = true; web.onResume() }
+    override fun onResume() { super.onResume(); PlayerState.inForeground = true; PlayerState.inNetworkSettings = false; web.onResume() }
     override fun onPause() { PlayerState.inForeground = false; web.onPause(); super.onPause() }
 }
