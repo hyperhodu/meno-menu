@@ -45,6 +45,14 @@ export function createApp() {
 
   // ---------- player API (device token auth) ----------
   const player = express.Router();
+  // The Fire TV app loads the player from its own bundle, so allow cross-origin calls with the device token.
+  player.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') return res.status(204).end();
+    next();
+  });
   const screenAuth = (req, res, next) => {
     const t = (req.headers.authorization || '').replace(/^Bearer /, '');
     const s = t && one('SELECT * FROM screens WHERE token=?', t);
