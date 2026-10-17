@@ -15,6 +15,20 @@ android {
         // Optional: bake in the server address. Build with -PserverUrl=http://host:3000
         buildConfigField 'String', 'SERVER_URL', "\"${project.findProperty('serverUrl') ?: ''}\""
     }
+    // One fixed key so every build can be installed over the previous one (keeps pairing and content).
+    // This key is committed on purpose for easy sideloading; use a private key before any public release.
+    signingConfigs {
+        shared {
+            storeFile file('menu-player.keystore')
+            storePassword 'menuplayer'
+            keyAlias 'menuplayer'
+            keyPassword 'menuplayer'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.shared }
+        release { signingConfig signingConfigs.shared }
+    }
     buildFeatures { buildConfig true }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

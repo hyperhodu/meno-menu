@@ -34,3 +34,10 @@ The player (`server/public/player/`) is plain HTML/JS. It is served by the serve
 3. Install the APK, e.g. `adb connect <stick-ip>` then `adb install app-debug.apk`, or with the Downloader app.
 
 The server must be reachable from the Fire Stick (same Wi-Fi works for testing; use a public HTTPS host for real stores).
+
+### Start at power-on
+The app registers for the boot broadcast. On Fire OS 8 (Android 11) it also needs the "display over other apps" permission, otherwise the system blocks it from opening itself. Grant it once per stick:
+```
+adb shell appops set com.menoves.menuplayer SYSTEM_ALERT_WINDOW allow
+```
+(or Settings > Applications > Manage Installed Applications > Menu Player, if your Fire OS has that option). Builds are signed with one fixed key, so a new APK installs over the old one and keeps pairing and downloaded content: `adb install -r app-debug.apk`.

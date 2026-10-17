@@ -49,6 +49,21 @@ class MainActivity : Activity() {
         }
         setContentView(web)
         load()
+        askOverlayPermissionOnce()
+    }
+
+    // Android 10+ only lets an app open itself at boot if it may "display over other apps".
+    // Not every Fire OS build has this screen, so failures are ignored; the same permission
+    // can be granted with: adb shell appops set com.menoves.menuplayer SYSTEM_ALERT_WINDOW allow
+    private fun askOverlayPermissionOnce() {
+        if (android.os.Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(this)) return
+        val prefs = getSharedPreferences("menu", MODE_PRIVATE)
+        if (prefs.getBoolean("asked_overlay", false)) return
+        prefs.edit().putBoolean("asked_overlay", true).apply()
+        try {
+            startActivity(android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")))
+        } catch (_: Exception) { }
     }
 
     private fun load() {
