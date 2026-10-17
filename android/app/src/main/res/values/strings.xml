@@ -1,0 +1,4 @@
+<resources>
+    <string name="launcher_service_label">Menu Player auto-start</string>
+    <string name="launcher_service_description">Lets Menu Player open itself when the device starts. It does not read or control anything on screen.</string>
+</resources>

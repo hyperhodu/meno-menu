@@ -36,8 +36,9 @@ The player (`server/public/player/`) is plain HTML/JS. It is served by the serve
 The server must be reachable from the Fire Stick (same Wi-Fi works for testing; use a public HTTPS host for real stores).
 
 ### Start at power-on
-The app registers for the boot broadcast. On Fire OS 8 (Android 11) it also needs the "display over other apps" permission, otherwise the system blocks it from opening itself. Grant it once per stick:
+Fire OS 8 (Android 11) blocks apps from opening themselves at boot (the "display over other apps" permission is reset on every restart). The app therefore includes a tiny accessibility service (`LauncherService`) that the system starts at boot and which opens the player. It reads nothing on screen. Enable it once per stick (persists across reboots):
 ```
-adb shell appops set com.menoves.menuplayer SYSTEM_ALERT_WINDOW allow
+adb shell settings put secure enabled_accessibility_services com.menoves.menuplayer/.LauncherService
+adb shell settings put secure accessibility_enabled 1
 ```
-(or Settings > Applications > Manage Installed Applications > Menu Player, if your Fire OS has that option). Builds are signed with one fixed key, so a new APK installs over the old one and keeps pairing and downloaded content: `adb install -r app-debug.apk`.
+Builds are signed with one fixed key, so a new APK installs over the old one and keeps pairing and downloaded content: `adb install -r app-debug.apk`.
