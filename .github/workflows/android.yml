@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       server_url:
-        description: 'Server address baked into the app (e.g. https://menu.example.com). Leave empty to type it on the TV.'
+        description: 'Server address baked into the app (e.g. https://menu.example.com)'
         required: false
-        default: ''
+        default: 'http://192.168.4.26:3000'
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -19,7 +19,7 @@ jobs:
         with: { gradle-version: '8.9' }
       - name: Build debug APK
         working-directory: android
-        run: gradle --no-daemon assembleDebug -PserverUrl="${{ github.event.inputs.server_url }}"
+        run: gradle --no-daemon assembleDebug -PserverUrl="${{ github.event.inputs.server_url || 'http://192.168.4.26:3000' }}"
       - uses: actions/upload-artifact@v4
         with:
           name: menu-player-apk
