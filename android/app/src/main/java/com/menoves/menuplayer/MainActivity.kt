@@ -84,11 +84,18 @@ class MainActivity : Activity() {
             or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
     }
 
-    // While the player is showing content, ignore every remote button (Home is handled by LauncherService).
-    // The setup screen needs the remote to type the server address, so keys work there.
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
-        if (PlayerState.locked) true else super.dispatchKeyEvent(event)
+    // While the player is showing content, ignore every remote button except volume (Home never reaches
+    // apps; LauncherService handles it). The setup screen needs the remote to type the server address.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean = when {
+        event.keyCode in VOLUME_KEYS -> super.dispatchKeyEvent(event)
+        PlayerState.locked -> true
+        else -> super.dispatchKeyEvent(event)
+    }
 
-    override fun onResume() { super.onResume(); PlayerState.inForeground = true; PlayerState.inNetworkSettings = false; web.onResume() }
-    override fun onPause() { PlayerState.inForeground = false; web.onPause(); super.onPause() }
+    override fun onResume() { super.onResume(); web.onResume() }
+    override fun onPause() { web.onPause(); super.onPause() }
+
+    private companion object {
+        val VOLUME_KEYS = setOf(KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_MUTE)
+    }
 }

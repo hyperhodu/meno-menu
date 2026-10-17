@@ -36,7 +36,12 @@ The player (`server/public/player/`) is plain HTML/JS. It is served by the serve
 The server must be reachable from the Fire Stick (same Wi-Fi works for testing; use a public HTTPS host for real stores).
 
 ### Start at power-on
-Fire OS 8 (Android 11) blocks apps from opening themselves at boot (the "display over other apps" permission is reset on every restart). The app therefore includes a tiny accessibility service (`LauncherService`) that the system starts at boot and which opens the player. It reads nothing on screen. Enable it once per stick (persists across reboots):
+Fire OS 8 (Android 11) blocks apps from opening themselves at boot (the "display over other apps" permission is reset on every restart). The app therefore includes a tiny accessibility service (`LauncherService`) that the system starts at boot and which opens the player. It only checks which app is in front; it reads nothing on screen.
+
+### Remote lock
+While the player is showing, every remote button except volume is ignored (the setup screen, where the server address is typed, is unlocked). Apps can't block the Home button, so the service redirects it: Home on the player opens the Wi-Fi settings (for fixing the connection), and Back or Home from there returns to the player. The Fire TV home screen never stays open. To reach other settings use adb (e.g. `adb shell am start -a android.settings.SETTINGS`) or disable the service.
+
+Enable the service once per stick (persists across reboots):
 ```
 adb shell settings put secure enabled_accessibility_services com.menoves.menuplayer/.LauncherService
 adb shell settings put secure accessibility_enabled 1

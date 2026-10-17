@@ -1,4 +1,4 @@
 <resources>
     <string name="launcher_service_label">Menu Player auto-start</string>
-    <string name="launcher_service_description">Opens Menu Player when the device starts and sends the Home button to network settings while the player is running. It does not read what is on screen.</string>
+    <string name="launcher_service_description">Opens Menu Player when the device starts and when the Home screen appears (Home on the player opens Wi-Fi settings). It only checks which app is in front; it does not read anything on screen.</string>
 </resources>
