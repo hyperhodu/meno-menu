@@ -48,10 +48,12 @@ async function view(){const m=document.getElementById('m');if(!store){m.innerHTM
  m.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{if(confirm('Delete this file? It is removed from playlists.')){await api('DELETE','/media/'+b.dataset.d);view()}});
  plb.onclick=async()=>{if(pln.value.trim()){await api('POST',`/stores/${store.id}/playlists`,{name:pln.value});view()}};
  const plOpts=(sel)=>`<option value="">— none —</option>`+playlists.map(p=>`<option value=${p.id} ${p.id==sel?'selected':''}>${esc(p.name)}</option>`).join('');
- sc.innerHTML=screens.length?`<table>${screens.map(s=>`<tr><td><span class=dot style="background:${online(s.last_seen)?'#2f9e44':'#adb5bd'}"></span>${esc(s.name)}</td>
+ sc.innerHTML=screens.length?`<table>${screens.map(s=>`<tr><td><span class=dot style="background:${online(s.last_seen)?'#2f9e44':'#adb5bd'}"></span>${esc(s.name)} <button data-ren=${s.id} title="Rename">✎</button>
+  <div class=muted title="Device ID ${esc(s.device_id)}">${s.device_name?esc(s.device_name)+' · ':''}ID ${esc((s.device_id||'unknown').slice(-6))}${s.device_model?' · '+esc(s.device_model):''}${(s.device_ip||s.last_ip)?' · '+esc(s.device_ip||s.last_ip):''}${s.last_seen?' · seen '+esc(s.last_seen.slice(0,16))+' UTC':''}</div></td>
   <td>Default <select data-def=${s.id}>${plOpts(s.default_playlist_id)}</select></td>
   <td><button data-sch=${s.id}>Schedule (${s.schedules.length})</button> <button data-rm=${s.id}>Remove</button></td></tr>`).join('')}</table>`:'<span class=muted>No screens. Open the player app on a Fire Stick and enter the code shown.</span>';
  sc.querySelectorAll('[data-def]').forEach(el=>el.onchange=()=>api('PATCH','/screens/'+el.dataset.def,{default_playlist_id:el.value?+el.value:null}));
+ sc.querySelectorAll('[data-ren]').forEach(b=>b.onclick=async()=>{const s=screens.find(x=>x.id==b.dataset.ren);const n=prompt('Screen name',s.name);if(n&&n.trim()){await api('PATCH','/screens/'+s.id,{name:n.trim()});view()}});
  sc.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{if(confirm('Remove screen?')){await api('DELETE','/screens/'+b.dataset.rm);view()}});
  sc.querySelectorAll('[data-sch]').forEach(b=>b.onclick=()=>scheduleEditor(screens.find(s=>s.id==b.dataset.sch),playlists));
  pls.innerHTML=playlists.map(p=>`<div class=m style="margin:8px 0"><div class=row><b style="flex:1">${esc(p.name)}</b><button data-pd=${p.id}>Delete</button></div>
