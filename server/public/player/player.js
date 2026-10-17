@@ -128,6 +128,7 @@
   }
 
   async function run() {
+    lock(true);
     let lastKey = '', idx = 0, failures = 0;
     for (;;) {
       if (!manifest || !manifest.paired) {
@@ -147,7 +148,10 @@
     }
   }
 
+  const lock = (v) => { try { window.Native && window.Native.setLocked(v); } catch {} };
+
   function setup() {
+    lock(false); // the remote must work to type the server address
     if (document.getElementById('setup')) return;
     show('<div id="setup"><div class="sm">Enter the server address</div><input id="su" placeholder="http://192.168.1.10:3000" autofocus><div class="sm">Press Enter when done</div></div>');
     $('su').addEventListener('keydown', (e) => { if (e.key === 'Enter' && $('su').value.trim()) { LS.setItem('serverUrl', $('su').value.trim()); location.reload(); } });

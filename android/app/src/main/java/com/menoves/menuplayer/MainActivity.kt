@@ -47,6 +47,10 @@ class MainActivity : Activity() {
                 }
             }
         }
+        web.addJavascriptInterface(object {
+            @android.webkit.JavascriptInterface
+            fun setLocked(locked: Boolean) { PlayerState.locked = locked }
+        }, "Native")
         setContentView(web)
         load()
         askOverlayPermissionOnce()
@@ -80,10 +84,11 @@ class MainActivity : Activity() {
             or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
     }
 
-    // Don't let the remote's Back button close the player.
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean =
-        if (keyCode == KeyEvent.KEYCODE_BACK) true else super.onKeyDown(keyCode, event)
+    // While the player is showing content, ignore every remote button (Home is handled by LauncherService).
+    // The setup screen needs the remote to type the server address, so keys work there.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+        if (PlayerState.locked) true else super.dispatchKeyEvent(event)
 
-    override fun onResume() { super.onResume(); web.onResume() }
-    override fun onPause() { web.onPause(); super.onPause() }
+    override fun onResume() { super.onResume(); PlayerState.inForeground = true; web.onResume() }
+    override fun onPause() { PlayerState.inForeground = false; web.onPause(); super.onPause() }
 }
