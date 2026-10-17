@@ -7,8 +7,8 @@ html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui,
 .layer.on{opacity:1}
 #msg{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:5vw;z-index:5;background:#000}
 #msg.on{display:flex}#msg .big{font-size:14vw;letter-spacing:.08em;font-weight:700}#msg .sm{font-size:3vw;opacity:.7;margin-top:2vh}
-#setup input{font-size:4vw;width:80vw;padding:1vw}#dot{position:absolute;right:8px;bottom:8px;width:10px;height:10px;border-radius:50%;background:#2f9e44;z-index:6;opacity:.5}
-#dot.off{background:#e8590c}
+#setup input{font-size:4vw;width:80vw;padding:1vw}#dot{display:none;position:absolute;right:10px;bottom:10px;width:14px;height:14px;border-radius:50%;background:#e03131;z-index:6;opacity:.85}
+#dot.off{display:block}
 </style></head><body>
 <img id="a" class="layer"><img id="b" class="layer"><video id="va" class="layer" playsinline></video><video id="vb" class="layer" playsinline></video>
 <div id="msg"></div><div id="dot"></div>
