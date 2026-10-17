@@ -1,0 +1,9 @@
+{
+  "name": "digital-menu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node server/index.js", "test": "node --test server/test/*.test.js" },
+  "engines": { "node": ">=22.5" },
+  "dependencies": { "express": "^4.21.0", "multer": "^1.4.5-lts.1" }
+}
