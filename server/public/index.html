@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digital Menu</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1c1f23;--card:#fff;--line:#dde1e6;--accent:#d9480f}
+@media (prefers-color-scheme:dark){:root{--bg:#15171a;--fg:#e8eaed;--card:#1f2226;--line:#33373d;--accent:#ff8a4c}}
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+header{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{font-size:17px;margin:0;flex:1}main{max-width:960px;margin:0 auto;padding:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px}
+h2{font-size:15px;margin:0 0 10px}input,select,button{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+button{cursor:pointer}button.p{background:var(--accent);color:#fff;border-color:var(--accent)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.m{border:1px solid var(--line);border-radius:8px;padding:6px;font-size:12px;word-break:break-all}.m img,.m video{width:100%;height:90px;object-fit:cover;border-radius:4px;background:#000}
+.muted{opacity:.65;font-size:13px}.login{max-width:320px;margin:15vh auto}.login input{width:100%;margin:6px 0}
+table{width:100%;border-collapse:collapse}td{padding:5px 4px;border-top:1px solid var(--line)}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+</style></head><body><div id="app"></div>
+<script>
+const $=(h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild};
+const api=async(m,u,b)=>{const o={method:m,headers:{},credentials:'same-origin'};if(b instanceof FormData)o.body=b;else if(b){o.headers['content-type']='application/json';o.body=JSON.stringify(b)}
+ const r=await fetch('/api'+u,o);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||r.status);return d};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const app=document.getElementById('app');let me,store;
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const hm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const online=t=>t&&Date.now()-new Date(t.replace(' ','T')+'Z')<120000;
+
+async function boot(){try{me=await api('GET','/me');}catch{return loginView()}shell()}
+function loginView(){app.innerHTML=`<form class="login section"><h2>Digital Menu</h2><input name=e type=email placeholder=Email required><input name=p type=password placeholder=Password required><button class=p style="width:100%">Log in</button><div id=err class=muted></div></form>`;
+ app.querySelector('form').onsubmit=async e=>{e.preventDefault();try{await api('POST','/login',{email:e.target.e.value,password:e.target.p.value});boot()}catch(x){err.textContent=x.message}}}
+async function shell(){const stores=await api('GET','/stores');store=stores.find(s=>s.id===store?.id)||stores[0];
+ app.innerHTML=`<header><h1>Digital Menu</h1><select id=ss>${stores.map(s=>`<option value=${s.id} ${s.id===store?.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
+ ${me.role==='admin'?'<button id=ns>+ Store</button><button id=nu>+ User</button>':''}<button id=lo>Log out</button></header><main id=m></main>`;
+ ss.onchange=()=>{store=stores.find(s=>s.id==ss.value);view()};lo.onclick=async()=>{await api('POST','/logout');boot()};
+ if(me.role==='admin'){ns.onclick=async()=>{const n=prompt('Store name');if(n){await api('POST','/stores',{name:n});store=null;shell()}};
+  nu.onclick=async()=>{const email=prompt('Manager email');const password=prompt('Password (8+ chars)');if(!email||!password)return;
+   const names=stores.map(s=>s.id+': '+s.name).join('\n');const ids=prompt('Store ids (comma separated):\n'+names);
+   try{await api('POST','/users',{email,password,stores:(ids||'').split(',').map(Number).filter(Boolean)});alert('User created')}catch(e){alert(e.message)}}}
+ view()}
+async function view(){const m=document.getElementById('m');if(!store){m.innerHTML='<p class=muted>No stores yet.</p>';return}
+ const [media,playlists,screens]=await Promise.all([api('GET',`/stores/${store.id}/media`),api('GET',`/stores/${store.id}/playlists`),api('GET',`/stores/${store.id}/screens`)]);
+ m.innerHTML=`<section><h2>Screens (${screens.length}/10)</h2><div class=row><input id=pc placeholder="6-digit code on TV" maxlength=6><input id=pn placeholder="Screen name"><button id=pb class=p>Pair</button></div><div id=sc></div></section>
+ <section><h2>Media</h2><div class=row><input type=file id=f multiple accept="image/*,video/*"><button id=ub class=p>Upload</button><span id=us class=muted></span></div>
+ <div class=grid>${media.map(x=>`<div class=m>${x.kind==='image'?`<img src="/api/media/${x.id}/file">`:`<video src="/api/media/${x.id}/file#t=0.5" preload=metadata muted></video>`}<div>${esc(x.original_name)}</div><button data-d=${x.id}>Delete</button></div>`).join('')||'<span class=muted>No media yet.</span>'}</div></section>
+ <section><h2>Playlists</h2><div class=row><input id=pln placeholder="New playlist name"><button id=plb>Create</button></div><div id=pls></div></section>`;
+ pb.onclick=async()=>{try{await api('POST',`/stores/${store.id}/screens/pair`,{code:pc.value,name:pn.value});view()}catch(e){alert(e.message)}};
+ ub.onclick=async()=>{if(!f.files.length)return;const fd=new FormData();[...f.files].forEach(x=>fd.append('files',x));us.textContent='Uploading…';try{await api('POST',`/stores/${store.id}/media`,fd);view()}catch(e){us.textContent=e.message}};
+ m.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{if(confirm('Delete this file? It is removed from playlists.')){await api('DELETE','/media/'+b.dataset.d);view()}});
+ plb.onclick=async()=>{if(pln.value.trim()){await api('POST',`/stores/${store.id}/playlists`,{name:pln.value});view()}};
+ const plOpts=(sel)=>`<option value="">— none —</option>`+playlists.map(p=>`<option value=${p.id} ${p.id==sel?'selected':''}>${esc(p.name)}</option>`).join('');
+ sc.innerHTML=screens.length?`<table>${screens.map(s=>`<tr><td><span class=dot style="background:${online(s.last_seen)?'#2f9e44':'#adb5bd'}"></span>${esc(s.name)}</td>
+  <td>Default <select data-def=${s.id}>${plOpts(s.default_playlist_id)}</select></td>
+  <td><button data-sch=${s.id}>Schedule (${s.schedules.length})</button> <button data-rm=${s.id}>Remove</button></td></tr>`).join('')}</table>`:'<span class=muted>No screens. Open the player app on a Fire Stick and enter the code shown.</span>';
+ sc.querySelectorAll('[data-def]').forEach(el=>el.onchange=()=>api('PATCH','/screens/'+el.dataset.def,{default_playlist_id:el.value?+el.value:null}));
+ sc.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{if(confirm('Remove screen?')){await api('DELETE','/screens/'+b.dataset.rm);view()}});
+ sc.querySelectorAll('[data-sch]').forEach(b=>b.onclick=()=>scheduleEditor(screens.find(s=>s.id==b.dataset.sch),playlists));
+ pls.innerHTML=playlists.map(p=>`<div class=m style="margin:8px 0"><div class=row><b style="flex:1">${esc(p.name)}</b><button data-pd=${p.id}>Delete</button></div>
+  <div data-items=${p.id}></div><div class=row><select data-add=${p.id}><option value="">+ Add media…</option>${media.map(x=>`<option value=${x.id}>${esc(x.original_name)}</option>`).join('')}</select></div></div>`).join('')||'<span class=muted>No playlists yet.</span>';
+ playlists.forEach(p=>{let items=p.items.map(i=>({media_id:i.media_id,duration_sec:i.duration_sec,name:i.original_name,kind:i.kind}));
+  const save=async()=>{await api('PUT',`/playlists/${p.id}/items`,{items});draw()};
+  const draw=()=>{pls.querySelector(`[data-items="${p.id}"]`).innerHTML=items.map((it,i)=>`<div class=row><span style="flex:1">${i+1}. ${esc(it.name)}</span>
+   ${it.kind==='image'?`<input type=number min=1 value=${it.duration_sec} style="width:70px" data-dur=${i}> sec`:'<span class=muted>video</span>'}
+   <button data-up=${i}>↑</button><button data-x=${i}>✕</button></div>`).join('');
+   const q=s=>pls.querySelectorAll(`[data-items="${p.id}"] ${s}`);
+   q('[data-dur]').forEach(e=>e.onchange=()=>{items[e.dataset.dur].duration_sec=+e.value;save()});
+   q('[data-up]').forEach(e=>e.onclick=()=>{const i=+e.dataset.up;if(i>0){[items[i-1],items[i]]=[items[i],items[i-1]];save()}});
+   q('[data-x]').forEach(e=>e.onclick=()=>{items.splice(+e.dataset.x,1);save()})};
+  draw();pls.querySelector(`[data-add="${p.id}"]`).onchange=e=>{const x=media.find(y=>y.id==e.target.value);if(x){items.push({media_id:x.id,duration_sec:10,name:x.original_name,kind:x.kind});save()}}});
+ pls.querySelectorAll('[data-pd]').forEach(b=>b.onclick=async()=>{if(confirm('Delete playlist?')){await api('DELETE','/playlists/'+b.dataset.pd);view()}})}
+function scheduleEditor(s,playlists){let rules=s.schedules.map(r=>({playlist_id:r.playlist_id,days:r.days.split(',').map(Number),start:hm(r.start_min),end:hm(r.end_min)}));
+ const d=$(`<dialog style="max-width:640px;width:95%"></dialog>`);document.body.append(d);
+ const draw=()=>{d.innerHTML=`<h2>Schedule: ${esc(s.name)}</h2><p class=muted>Rules override the default playlist during their time window (store time zone).</p>
+ ${rules.map((r,i)=>`<div class=row><select data-p=${i}>${playlists.map(p=>`<option value=${p.id} ${p.id==r.playlist_id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+  <input type=time value=${r.start} data-s=${i}> to <input type=time value=${r.end} data-e=${i}><button data-x=${i}>✕</button></div>
+  <div class=row>${DAYS.map((n,k)=>`<label><input type=checkbox data-d="${i}:${k}" ${r.days.includes(k)?'checked':''}>${n}</label>`).join(' ')}</div>`).join('')}
+ <div class=row><button id=ar>+ Rule</button><span style="flex:1"></span><button id=cx>Cancel</button><button id=sv class=p>Save</button></div>`;
+  d.querySelectorAll('[data-p]').forEach(e=>e.onchange=()=>rules[e.dataset.p].playlist_id=+e.value);
+  d.querySelectorAll('[data-s]').forEach(e=>e.onchange=()=>rules[e.dataset.s].start=e.value);
+  d.querySelectorAll('[data-e]').forEach(e=>e.onchange=()=>rules[e.dataset.e].end=e.value);
+  d.querySelectorAll('[data-x]').forEach(e=>e.onclick=()=>{rules.splice(+e.dataset.x,1);draw()});
+  d.querySelectorAll('[data-d]').forEach(e=>e.onchange=()=>{const[i,k]=e.dataset.d.split(':').map(Number);const a=rules[i].days;rules[i].days=e.checked?[...new Set([...a,k])]:a.filter(x=>x!==k)});
+  d.querySelector('#ar').onclick=()=>{if(playlists.length){rules.push({playlist_id:playlists[0].id,days:[0,1,2,3,4,5,6],start:'11:00',end:'14:00'});draw()}};
+  d.querySelector('#cx').onclick=()=>{d.close();d.remove()};
+  d.querySelector('#sv').onclick=async()=>{try{await api('PUT',`/screens/${s.id}/schedules`,{schedules:rules});d.close();d.remove();view()}catch(e){alert(e.message)}}};
+ draw();d.showModal()}
+boot();
+</script></body></html>
