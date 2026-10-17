@@ -50,6 +50,16 @@ class MainActivity : Activity() {
         web.addJavascriptInterface(object {
             @android.webkit.JavascriptInterface
             fun setLocked(locked: Boolean) { PlayerState.locked = locked }
+
+            // Android no longer exposes the MAC address to apps, so the device is identified by its Android ID.
+            @android.webkit.JavascriptInterface
+            fun getDeviceInfo(): String {
+                val id = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: ""
+                // The name is set by the user in Fire TV Settings > My Fire TV > About.
+                val name = android.provider.Settings.Global.getString(contentResolver, "device_name") ?: ""
+                return org.json.JSONObject().put("id", id).put("model", android.os.Build.MODEL ?: "")
+                    .put("name", name).put("ip", localIp()).toString()
+            }
         }, "Native")
         setContentView(web)
         load()
@@ -69,6 +79,11 @@ class MainActivity : Activity() {
                 Uri.parse("package:$packageName")))
         } catch (_: Exception) { }
     }
+
+    private fun localIp(): String = try {
+        java.net.NetworkInterface.getNetworkInterfaces().toList().flatMap { it.inetAddresses.toList() }
+            .firstOrNull { !it.isLoopbackAddress && it is java.net.Inet4Address }?.hostAddress ?: ""
+    } catch (_: Exception) { "" }
 
     private fun load() {
         val base = "https://appassets.androidplatform.net/assets/player/index.html"

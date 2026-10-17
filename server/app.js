@@ -27,6 +27,10 @@ const run = (sql, ...p) => db.prepare(sql).run(...p);
 const id = (v) => { const n = Number(v); return Number.isInteger(n) && n > 0 ? n : null; };
 const wrap = (fn) => (req, res, next) => { try { fn(req, res, next); } catch (e) { next(e); } };
 
+const clip = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '') || null;
+// Device info sent by the player: { id, model, name, ip }.
+const deviceFields = (d) => ({ id: clip(d?.id, 64), model: clip(d?.model, 64), name: clip(d?.name, 80), ip: clip(d?.ip, 64) });
+
 export function createApp() {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
@@ -61,16 +65,24 @@ export function createApp() {
     next();
   };
   // Device asks for a pairing code; shows it on the TV; admin/manager claims it in the dashboard.
-  player.post('/register', wrap((_req, res) => {
+  player.post('/register', wrap((req, res) => {
+    const d = deviceFields(req.body);
+    const deviceId = d.id;
+    // A reinstalled device registers again: drop its old, never-paired entry so it doesn't pile up.
+    if (deviceId) run('DELETE FROM screens WHERE device_id=? AND store_id IS NULL', deviceId);
     let code;
     do { code = String(crypto.randomInt(0, 1e6)).padStart(6, '0'); } while (one('SELECT 1 FROM screens WHERE pair_code=?', code));
     const token = crypto.randomBytes(24).toString('hex');
-    run('INSERT INTO screens(pair_code, token) VALUES(?,?)', code, token);
+    run('INSERT INTO screens(pair_code, token, device_id, device_model, device_name, device_ip, last_ip) VALUES(?,?,?,?,?,?,?)', code, token, deviceId, d.model, d.name, d.ip, req.ip);
     res.json({ code, token });
   }));
   player.get('/manifest', screenAuth, wrap((req, res) => {
     const s = req.screen;
-    run("UPDATE screens SET last_seen=datetime('now') WHERE id=?", s.id);
+    let info = {};
+    try { info = JSON.parse(decodeURIComponent(req.headers['x-device-info'] || '{}')); } catch {}
+    const d = deviceFields(info);
+    run("UPDATE screens SET last_seen=datetime('now'), last_ip=?, device_name=COALESCE(?,device_name), device_model=COALESCE(?,device_model), device_ip=COALESCE(?,device_ip), device_id=COALESCE(device_id,?) WHERE id=?",
+      req.ip, d.name, d.model, d.ip, d.id, s.id);
     if (!s.store_id) return res.json({ paired: false, code: s.pair_code });
     const store = one('SELECT id,name,timezone FROM stores WHERE id=?', s.store_id);
     const schedules = all('SELECT playlist_id,days,start_min,end_min FROM schedules WHERE screen_id=?', s.id);
@@ -192,6 +204,7 @@ export function createApp() {
   // screens
   const scGuard = storeGuard((r) => one('SELECT store_id FROM screens WHERE id=?', id(r.params.id))?.store_id);
   const screenOut = (s) => ({ id: s.id, name: s.name, store_id: s.store_id, default_playlist_id: s.default_playlist_id, last_seen: s.last_seen,
+    device_id: s.device_id, device_model: s.device_model, device_name: s.device_name, device_ip: s.device_ip, last_ip: s.last_ip,
     schedules: all('SELECT id,playlist_id,days,start_min,end_min FROM schedules WHERE screen_id=?', s.id) });
   api.get('/stores/:storeId/screens', storeGuard((r) => id(r.params.storeId)), wrap((req, res) =>
     res.json(all('SELECT * FROM screens WHERE store_id=? ORDER BY id', req.storeId).map(screenOut))));

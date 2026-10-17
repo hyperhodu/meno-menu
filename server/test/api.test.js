@@ -51,10 +51,13 @@ test('full flow: stores, isolation, upload, playlist, pairing, manifest, 10-scre
   const put = await call('PUT', `/api/playlists/${pl.id}/items`, { cookie: m, body: { items: [{ media_id: up.data[0].id, duration_sec: 8 }] } });
   assert.equal(put.data.items.length, 1);
 
-  const reg = (await call('POST', '/api/player/register')).data;
+  const reg = (await call('POST', '/api/player/register', { body: { id: 'abc123def456', model: 'AFTMA08C15', name: "Counter's stick", ip: '10.0.0.5' } })).data;
   assert.equal((await call('GET', '/api/player/manifest', { token: reg.token })).data.paired, false);
   const pair = await call('POST', `/api/stores/${a.id}/screens/pair`, { cookie: m, body: { code: reg.code, name: 'Front' } });
   assert.equal(pair.status, 201);
+  assert.equal(pair.data.device_id, 'abc123def456');
+  assert.equal(pair.data.device_name, "Counter's stick");
+  assert.equal(pair.data.device_model, 'AFTMA08C15');
   await call('PATCH', `/api/screens/${pair.data.id}`, { cookie: m, body: { default_playlist_id: pl.id } });
   await call('PUT', `/api/screens/${pair.data.id}/schedules`, { cookie: m, body: { schedules: [{ playlist_id: pl.id, days: [1, 2], start: '11:00', end: '14:30' }] } });
 

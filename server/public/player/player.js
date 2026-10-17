@@ -39,13 +39,22 @@
   const hide = () => msg.classList.remove('on');
 
   async function api(path, opts = {}) {
-    const r = await fetch(abs(path), { ...opts, headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(opts.headers || {}) } });
+    const r = await fetch(abs(path), { ...opts, headers: { ...(token ? { Authorization: 'Bearer ' + token, 'X-Device-Info': encodeURIComponent(JSON.stringify(deviceInfo)) } : {}), ...(opts.headers || {}) } });
     return r;
   }
 
+  // ---------- device identity ----------
+  // In the Android app this is the device's ID and model; in a browser it is a random ID kept in localStorage.
+  const deviceInfo = (() => {
+    try { const d = JSON.parse(window.Native.getDeviceInfo()); if (d && d.id) return d; } catch {}
+    let id = LS.getItem('deviceId');
+    if (!id) { id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join(''); LS.setItem('deviceId', id); }
+    return { id, model: 'Browser' };
+  })();
+
   // ---------- pairing + sync ----------
   async function register() {
-    const r = await fetch(abs('/api/player/register'), { method: 'POST' });
+    const r = await fetch(abs('/api/player/register'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(deviceInfo) });
     if (!r.ok) throw new Error('register failed');
     const d = await r.json();
     token = d.token; LS.setItem('token', token); LS.removeItem('manifest'); manifest = null;
@@ -133,7 +142,7 @@
     for (;;) {
       if (!manifest || !manifest.paired) {
         if (!serverUrl()) { setup(); await wait(1000); continue; }
-        show(manifest && manifest.code ? `<div class="sm">On the dashboard, choose your store and enter this code</div><div class="big">${manifest.code}</div><div class="sm">Waiting to be paired…</div>` : '<div class="sm">Connecting…</div>');
+        show(manifest && manifest.code ? `<div class="sm">On the dashboard, choose your store and enter this code</div><div class="big">${manifest.code}</div><div class="sm">Waiting to be paired…</div><div class="sm" style="font-size:2vw;opacity:.5">${deviceInfo.name ? deviceInfo.name + ' · ' : ''}ID ${deviceInfo.id.slice(-6)}</div>` : '<div class="sm">Connecting…</div>');
         await sync(); await wait(PAIR_POLL_MS); continue;
       }
       const pl = activePlaylist(manifest);

@@ -41,3 +41,9 @@ CREATE TABLE IF NOT EXISTS schedules(
   playlist_id INTEGER NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
   days TEXT NOT NULL DEFAULT '0,1,2,3,4,5,6', start_min INTEGER NOT NULL, end_min INTEGER NOT NULL);
 `);
+
+// Lightweight migrations for databases created by earlier versions.
+const cols = db.prepare('PRAGMA table_info(screens)').all().map((c) => c.name);
+for (const [name, type] of [['device_id', 'TEXT'], ['device_model', 'TEXT'], ['last_ip', 'TEXT'], ['device_name', 'TEXT'], ['device_ip', 'TEXT']]) {
+  if (!cols.includes(name)) db.exec(`ALTER TABLE screens ADD COLUMN ${name} ${type}`);
+}
